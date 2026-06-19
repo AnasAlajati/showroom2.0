@@ -127,7 +127,7 @@ export const FABRICS = [
     fleeseCombo: true,
     fleeseNote: 'Waffle front panel + 3-thread fleece back & sleeves',
     garmentImages: {
-      men:   ['/garments/02_WAFFLE_JACQUARD/NV-WAFFLE-SQUARE/Men/01_Bottle-Green.jpg', '/garments/02_WAFFLE_JACQUARD/NV-WAFFLE-SQUARE/Men/02_Dark-Indigo.jpg'],
+      men:   ['/garments/02_WAFFLE_JACQUARD/NV-WAFFLE-SQUARE/Men/01_Bottle-Green.jpg'],
       women: ['/garments/02_WAFFLE_JACQUARD/NV-WAFFLE-SQUARE/Women/01_Terracotta.jpg', '/garments/02_WAFFLE_JACQUARD/NV-WAFFLE-SQUARE/Women/02_Pale-Mauve.jpg'],
       kids:  ['/garments/02_WAFFLE_JACQUARD/NV-WAFFLE-SQUARE/Children/01_Terracotta.jpg', '/garments/02_WAFFLE_JACQUARD/NV-WAFFLE-SQUARE/Children/02_Bottle-Green.jpg'],
     },
@@ -481,9 +481,9 @@ export const FABRICS = [
     pantones: ['19-4118', '16-4010', '13-0908'],
     fleeseCombo: false,
     garmentImages: {
-      men:   ['/garments/09_WINTER_ESSENTIALS/F02/Men/01.jpeg', '/garments/09_WINTER_ESSENTIALS/F02/Men/02.jpeg'],
-      women: ['/garments/09_WINTER_ESSENTIALS/F02/Women/01.jpeg', '/garments/09_WINTER_ESSENTIALS/F02/Women/02.jpeg'],
-      kids:  ['/garments/09_WINTER_ESSENTIALS/F02/Children/01.jpeg', '/garments/09_WINTER_ESSENTIALS/F02/Children/02.jpeg', '/garments/09_WINTER_ESSENTIALS/F02/Children/03.jpeg'],
+      men:   ['/garments/09_WINTER_ESSENTIALS/F02/Men/01.jpeg', '/garments/09_WINTER_ESSENTIALS/F02/Men/02.jpeg', '/garments/05_SLUB_OPEN/LG-CRINKLE-SEER/Men/02.png'],
+      women: ['/garments/09_WINTER_ESSENTIALS/F02/Women/01.jpeg', '/garments/09_WINTER_ESSENTIALS/F02/Women/02.jpeg', '/garments/05_SLUB_OPEN/LG-CRINKLE-SEER/Women/02.png'],
+      kids:  ['/garments/09_WINTER_ESSENTIALS/F02/Children/01.jpeg', '/garments/09_WINTER_ESSENTIALS/F02/Children/02.jpeg', '/garments/09_WINTER_ESSENTIALS/F02/Children/03.jpeg', '/garments/05_SLUB_OPEN/LG-CRINKLE-SEER/Children/02.png'],
     },
   },
   {
