@@ -108,8 +108,11 @@ export default function FabricDetail({ fabric, onClose, isAdmin, onDeleted }) {
   const [deletedPaths, setDeletedPaths] = useState(new Set())
   const [deletingFab,  setDeletingFab]  = useState(false)
   const [confirmDel,   setConfirmDel]   = useState(false)
-  const [addingImgs,   setAddingImgs]   = useState(false)
-  const addInputRef = useRef()
+  const [addingImgs,    setAddingImgs]    = useState(false)
+  const [liveImage,     setLiveImage]     = useState(null)
+  const [replacingImg,  setReplacingImg]  = useState(false)
+  const addInputRef     = useRef()
+  const replaceInputRef = useRef()
 
   const groupNum   = fabric.group.match(/^(\d+)/)?.[1] ?? ''
   const groupLabel = GROUPS.find(g => g.id === fabric.group)?.label ?? fabric.group
@@ -181,6 +184,23 @@ export default function FabricDetail({ fabric, onClose, isAdmin, onDeleted }) {
     } finally { setAddingImgs(false) }
   }
 
+  async function handleReplaceImage(files) {
+    const file = files[0]
+    if (!file || !file.type.startsWith('image/')) return
+    setReplacingImg(true)
+    try {
+      const encoded = await readAsBase64(file)
+      const res = await fetch('/api/update-fabric-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fabricId: fabric.id, group: fabric.group, code: fabric.code, image: encoded }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error)
+      setLiveImage(URL.createObjectURL(file))
+    } finally { setReplacingImg(false) }
+  }
+
   // reset selected image when tab changes
   function switchTab(tab) {
     setActiveTab(tab)
@@ -194,7 +214,7 @@ export default function FabricDetail({ fabric, onClose, isAdmin, onDeleted }) {
       <div className="hidden md:flex md:w-[40%] lg:w-[38%] relative flex-col flex-shrink-0 overflow-hidden">
         {/* Fabric image */}
         <img
-          src={fabric.image}
+          src={liveImage ?? fabric.image}
           alt={fabric.name}
           className="absolute inset-0 w-full h-full object-cover"
         />
@@ -202,20 +222,41 @@ export default function FabricDetail({ fabric, onClose, isAdmin, onDeleted }) {
         {/* Top-to-bottom gradient — dark at bottom only */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-black/10" />
 
-        {/* Admin: download fabric image */}
+        {/* Admin: download + replace fabric image */}
         {isAdmin && (
-          <a
-            href={fabric.image}
-            download={`${fabric.code}.jpeg`}
-            onClick={e => e.stopPropagation()}
-            title="Download fabric image"
-            className="absolute top-4 right-4 z-10 flex items-center gap-1.5 px-2.5 py-1.5 bg-black/50 hover:bg-black/80 border border-white/20 hover:border-white/50 text-white/60 hover:text-white transition-all text-[9px] uppercase tracking-widest"
-          >
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-            </svg>
-            Download
-          </a>
+          <div className="absolute top-4 right-4 z-10 flex flex-col gap-1.5">
+            {/* Replace */}
+            <input ref={replaceInputRef} type="file" accept="image/*" className="sr-only"
+                   onChange={e => handleReplaceImage(e.target.files)} />
+            <button
+              onClick={e => { e.stopPropagation(); replaceInputRef.current?.click() }}
+              disabled={replacingImg}
+              title="Replace fabric image"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-black/50 hover:bg-[#B5614A]/80 border border-white/20 hover:border-[#B5614A] text-white/60 hover:text-white transition-all text-[9px] uppercase tracking-widest disabled:opacity-40"
+            >
+              {replacingImg ? (
+                <span className="w-3 h-3 border border-white/40 border-t-white rounded-full animate-spin" />
+              ) : (
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                </svg>
+              )}
+              {replacingImg ? 'Saving…' : 'Replace'}
+            </button>
+            {/* Download */}
+            <a
+              href={liveImage ?? fabric.image}
+              download={`${fabric.code}.jpeg`}
+              onClick={e => e.stopPropagation()}
+              title="Download fabric image"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-black/50 hover:bg-black/80 border border-white/20 hover:border-white/50 text-white/60 hover:text-white transition-all text-[9px] uppercase tracking-widest"
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+              </svg>
+              Download
+            </a>
+          </div>
         )}
 
         {/* Bottom info */}

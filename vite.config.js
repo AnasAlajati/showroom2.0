@@ -74,6 +74,39 @@ function fabricUploadPlugin() {
         })
       })
 
+      // ── Replace / update the main fabric texture image ─────
+      server.middlewares.use('/api/update-fabric-image', async (req, res) => {
+        res.setHeader('Content-Type', 'application/json')
+        if (req.method !== 'POST') { res.statusCode = 405; return res.end('{}') }
+        let raw = ''; req.on('data', c => raw += c)
+        req.on('end', async () => {
+          try {
+            const { fabricId, group, code, image } = JSON.parse(raw)
+            const root   = process.cwd()
+            const ext    = image.ext.toLowerCase().replace('jpg', 'jpeg')
+            const buf    = Buffer.from(image.data, 'base64')
+            const cBuf   = ext === 'png'
+              ? await sharp(buf).resize({ width: 1400, withoutEnlargement: true }).png({ quality: 80, compressionLevel: 9 }).toBuffer()
+              : await sharp(buf).resize({ width: 1400, withoutEnlargement: true }).jpeg({ quality: 80, mozjpeg: true }).toBuffer()
+
+            const newPath  = `/fabrics/${group}/${code}.${ext}`
+            const filePath = join(root, 'public', 'fabrics', group, `${code}.${ext}`)
+            await mkdir(join(root, 'public', 'fabrics', group), { recursive: true })
+            await writeFile(filePath, cBuf)
+
+            // Update the image field in fabrics.js if path changed
+            const fp  = join(root, 'src', 'data', 'fabrics.js')
+            let src   = await readFile(fp, 'utf8')
+            src = src.replace(
+              new RegExp(`(id:\\s*['"]${fabricId}['"][\\s\\S]*?image:\\s*)['"][^'"]+['"]`),
+              `$1'${newPath}'`
+            )
+            await writeFile(fp, src)
+            res.end(JSON.stringify({ ok: true, newPath }))
+          } catch (e) { res.statusCode = 500; res.end(JSON.stringify({ error: e.message })) }
+        })
+      })
+
       // Add garment images to an EXISTING fabric entry
       server.middlewares.use('/api/add-garment-images', async (req, res) => {
         res.setHeader('Content-Type', 'application/json')
