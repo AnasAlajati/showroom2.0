@@ -119,14 +119,6 @@ export default function LandingPage({ onEnter, onFamilies, onPalette, isAdmin, o
             <span className="text-[#B5614A] text-lg leading-none group-hover:translate-x-1 transition-transform duration-200">→</span>
           </button>
 
-          {/* Fabric families */}
-          <button
-            onClick={onFamilies}
-            className="px-7 py-4 border border-[#EDE0C8]/40 hover:border-[#EDE0C8]/80 hover:bg-white/5 transition-all duration-200 cursor-pointer"
-          >
-            <span className="text-[13px] font-bold tracking-[0.25em] uppercase text-[#EDE0C8]">Fabric Families</span>
-          </button>
-
           {/* Palette */}
           <button
             onClick={onPalette}

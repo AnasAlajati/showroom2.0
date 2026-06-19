@@ -27,7 +27,9 @@ export default function App() {
 
   const displayed = useMemo(() => {
     const base = activeGroup === 'all' ? FABRICS : FABRICS.filter(f => f.group === activeGroup)
-    return base.filter(f => !deletedIds.has(f.id))
+    const visible = base.filter(f => !deletedIds.has(f.id))
+    const imgCount = f => Object.values(f.garmentImages ?? {}).reduce((s, a) => s + a.length, 0)
+    return [...visible].sort((a, b) => imgCount(b) - imgCount(a))
   }, [activeGroup, deletedIds])
 
   function goToLookbook(group) {
