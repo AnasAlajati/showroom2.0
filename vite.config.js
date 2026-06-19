@@ -140,42 +140,46 @@ function fabricUploadPlugin() {
               paths.push(`/garments/${group}/${code}/${label}/${fname}`)
             }
 
-            // Patch fabrics.js — add/extend garmentImages[gender] for this fabric
+            // Patch fabrics.js — robust bracket-counting approach
             const fabricsPath = join(root, 'src', 'data', 'fabrics.js')
             let src = await readFile(fabricsPath, 'utf8')
+            const quoted = paths.map(p => `'${p}'`).join(', ')
 
-            // Find the fabric entry block by id
-            const idPattern = new RegExp(`(id:\\s*'${fabricId}'[\\s\\S]*?)(garmentImages:\\s*\\{([\\s\\S]*?)\\}|)(,?\\s*\\})`, 'm')
-            const newPaths  = paths.map(p => `'${p}'`).join(', ')
+            // 1. Locate the fabric entry by id (handles single OR double quotes)
+            let idIdx = src.indexOf(`id: '${fabricId}'`)
+            if (idIdx < 0) idIdx = src.indexOf(`"id": "${fabricId}"`)
+            if (idIdx >= 0) {
+              // 2. Find start of fabric object block
+              let bStart = idIdx
+              while (bStart > 0 && src[bStart] !== '{') bStart--
 
-            if (src.includes(`'${fabricId}'`) && src.match(new RegExp(`id:\\s*'${fabricId}'[\\s\\S]*?garmentImages`))) {
-              // garmentImages block already exists — add/extend the gender key
-              const genderPattern = new RegExp(`(id:\\s*'${fabricId}'[\\s\\S]*?garmentImages:\\s*\\{[\\s\\S]*?)(${gender}:\\s*\\[[^\\]]*\\])`)
-              if (genderPattern.test(src)) {
-                // extend existing gender array
-                src = src.replace(genderPattern, (_, pre, arr) =>
-                  `${pre}${arr.replace(/\]$/, `, ${newPaths}]`)}`)
-              } else {
-                // add new gender key into garmentImages
-                src = src.replace(
-                  new RegExp(`(id:\\s*'${fabricId}'[\\s\\S]*?garmentImages:\\s*\\{)`),
-                  `$1\n      ${gender}: [${newPaths}],`
-                )
+              // 3. Find end of fabric object using bracket counter
+              let depth = 0, bEnd = bStart
+              for (; bEnd < src.length; bEnd++) {
+                if (src[bEnd] === '{') depth++
+                else if (src[bEnd] === '}') { depth--; if (depth === 0) break }
               }
-            } else {
-              // No garmentImages at all — insert it + add gender to customers array
-              src = src.replace(
-                new RegExp(`(id:\\s*'${fabricId}'[\\s\\S]*?fleeseCombo:\\s*(?:true|false),?)`),
-                `$1\n    garmentImages: {\n      ${gender}: [${newPaths}],\n    },`
-              )
-              // Also add gender to customers if missing
-              src = src.replace(
-                new RegExp(`(id:\\s*'${fabricId}'[\\s\\S]*?customers:\\s*\\[)([^\\]]*)(\\])`),
-                (_, pre, list, close) => {
-                  if (list.includes(`'${gender}'`) || list.includes(`"${gender}"`)) return _
-                  return `${pre}${list.trimEnd()}${list.trim() ? ', ' : ''}'${gender}'${close}`
-                }
-              )
+
+              let block = src.slice(bStart, bEnd + 1)
+
+              // 4. Find or create garmentImages[gender] inside this block
+              const gRe = new RegExp(`(${gender}\\s*:\\s*\\[)([^\\]]*)(\\])`)
+              let newBlock
+              if (gRe.test(block)) {
+                // Extend existing gender array
+                newBlock = block.replace(gRe, (_, open, content, close) => {
+                  const c = content.trim()
+                  return `${open}${c ? c + ', ' : ''}${quoted}${close}`
+                })
+              } else if (/garmentImages\s*:/.test(block)) {
+                // garmentImages exists but not this gender — insert gender key
+                newBlock = block.replace(/(garmentImages\s*:\s*\{)/, `$1\n      ${gender}: [${quoted}],`)
+              } else {
+                // No garmentImages at all — append before closing brace
+                newBlock = block.slice(0, -1) + `,\n    garmentImages: {\n      ${gender}: [${quoted}],\n    },\n  }`
+              }
+
+              src = src.slice(0, bStart) + newBlock + src.slice(bEnd + 1)
             }
 
             await writeFile(fabricsPath, src)
