@@ -105,6 +105,7 @@ export default function FabricDetail({ fabric, onClose, isAdmin, onDeleted }) {
   const [zoomed, setZoomed]         = useState(false)
   const [liveImgs, setLiveImgs]     = useState({})
   const [deletingImg,  setDeletingImg]  = useState(null)
+  const [deletedPaths, setDeletedPaths] = useState(new Set())
   const [deletingFab,  setDeletingFab]  = useState(false)
   const [confirmDel,   setConfirmDel]   = useState(false)
   const [addingImgs,   setAddingImgs]   = useState(false)
@@ -117,7 +118,10 @@ export default function FabricDetail({ fabric, onClose, isAdmin, onDeleted }) {
     ? FABRICS.filter(f => f.family === fabric.family && f.id !== fabric.id)
     : []
 
-  const garmentImgs = [...(fabric.garmentImages?.[activeTab] ?? []), ...(liveImgs[activeTab] ?? [])]
+  const garmentImgs = [
+    ...(fabric.garmentImages?.[activeTab] ?? []).filter(p => !deletedPaths.has(p)),
+    ...(liveImgs[activeTab] ?? []).filter(p => !deletedPaths.has(p)),
+  ]
   const mainSrc     = garmentImgs[activeImg] ?? null
 
   // All tabs including ones that only have live-uploaded images
@@ -142,13 +146,8 @@ export default function FabricDetail({ fabric, onClose, isAdmin, onDeleted }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ imagePath: path }),
       })
-      // Remove from live state
-      setLiveImgs(prev => {
-        const next = { ...prev }
-        for (const g of Object.keys(next)) next[g] = (next[g] ?? []).filter(p => p !== path)
-        return next
-      })
-      if (activeImg >= garmentImgs.length - 1) setActiveImg(Math.max(0, garmentImgs.length - 2))
+      setDeletedPaths(prev => new Set([...prev, path]))
+      setActiveImg(i => Math.min(i, Math.max(0, garmentImgs.length - 2)))
     } finally { setDeletingImg(null) }
   }
 
