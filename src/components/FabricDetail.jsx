@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { PANTONE_COLORS } from '../data/colors'
 import { GROUPS, FABRICS } from '../data/fabrics'
@@ -107,6 +107,8 @@ export default function FabricDetail({ fabric, onClose, isAdmin, onDeleted }) {
   const [deletingImg,  setDeletingImg]  = useState(null)
   const [deletingFab,  setDeletingFab]  = useState(false)
   const [confirmDel,   setConfirmDel]   = useState(false)
+  const [addingImgs,   setAddingImgs]   = useState(false)
+  const addInputRef = useRef()
 
   const groupNum   = fabric.group.match(/^(\d+)/)?.[1] ?? ''
   const groupLabel = GROUPS.find(g => g.id === fabric.group)?.label ?? fabric.group
@@ -163,6 +165,23 @@ export default function FabricDetail({ fabric, onClose, isAdmin, onDeleted }) {
     } finally { setDeletingFab(false); setConfirmDel(false) }
   }
 
+  async function handleAddMore(files) {
+    const imgs = Array.from(files).filter(f => f.type.startsWith('image/'))
+    if (!imgs.length) return
+    setAddingImgs(true)
+    try {
+      const encoded = await Promise.all(imgs.map(readAsBase64))
+      const res = await fetch('/api/add-garment-images', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fabricId: fabric.id, group: fabric.group, code: fabric.code, gender: activeTab, images: encoded }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error)
+      handleUploaded(activeTab, json.paths)
+    } finally { setAddingImgs(false) }
+  }
+
   // reset selected image when tab changes
   function switchTab(tab) {
     setActiveTab(tab)
@@ -183,6 +202,22 @@ export default function FabricDetail({ fabric, onClose, isAdmin, onDeleted }) {
 
         {/* Top-to-bottom gradient — dark at bottom only */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-black/10" />
+
+        {/* Admin: download fabric image */}
+        {isAdmin && (
+          <a
+            href={fabric.image}
+            download={`${fabric.code}.jpeg`}
+            onClick={e => e.stopPropagation()}
+            title="Download fabric image"
+            className="absolute top-4 right-4 z-10 flex items-center gap-1.5 px-2.5 py-1.5 bg-black/50 hover:bg-black/80 border border-white/20 hover:border-white/50 text-white/60 hover:text-white transition-all text-[9px] uppercase tracking-widest"
+          >
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+            </svg>
+            Download
+          </a>
+        )}
 
         {/* Bottom info */}
         <div className="relative mt-auto px-8 pb-10">
@@ -380,11 +415,31 @@ export default function FabricDetail({ fabric, onClose, isAdmin, onDeleted }) {
                   )}
                 </div>
 
-                {/* Piece count */}
-                <div className="px-6 sm:px-10 pb-4 pt-2 flex-shrink-0">
+                {/* Piece count + admin add more */}
+                <div className="px-6 sm:px-10 pb-4 pt-2 flex-shrink-0 flex items-center gap-4">
                   <p className="text-[10px] tracking-[0.25em] uppercase text-gray-400">
                     {garmentImgs.length} {garmentImgs.length === 1 ? 'piece' : 'pieces'} in {TAB_LABEL[activeTab]}
                   </p>
+                  {isAdmin && (
+                    <>
+                      <input ref={addInputRef} type="file" accept="image/*" multiple className="sr-only"
+                             onChange={e => handleAddMore(e.target.files)} />
+                      <button
+                        onClick={() => addInputRef.current?.click()}
+                        disabled={addingImgs}
+                        className="flex items-center gap-1 text-[9px] uppercase tracking-widest text-gray-400 hover:text-[#B5614A] border border-gray-200 hover:border-[#B5614A] px-2 py-1 transition-colors disabled:opacity-40"
+                      >
+                        {addingImgs ? (
+                          <span className="w-3 h-3 border border-gray-300 border-t-[#B5614A] rounded-full animate-spin" />
+                        ) : (
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                          </svg>
+                        )}
+                        Add Images
+                      </button>
+                    </>
+                  )}
                 </div>
               </>
             ) : (
