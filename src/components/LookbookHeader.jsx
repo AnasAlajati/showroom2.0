@@ -1,11 +1,6 @@
-import { FABRICS } from '../data/fabrics'
-
-export default function LookbookHeader({ onHome, displayed, activeGroup }) {
-  const totalLooks = FABRICS.reduce((sum, f) =>
-    sum + (f.garments ? Object.keys(f.garments).length : 0), 0)
-
+export default function LookbookHeader({ onHome, displayed, activeGroup, totalLooks, isAdmin, fbConnected }) {
   const groupLabel = activeGroup === 'all'
-    ? 'All Fabrics with Garments'
+    ? 'All Fabrics'
     : activeGroup.replace(/^\d+_/, '').replace(/_/g, ' ')
 
   return (
@@ -32,11 +27,19 @@ export default function LookbookHeader({ onHome, displayed, activeGroup }) {
           </p>
         </div>
 
-        {/* Right: counts */}
-        <div className="text-right flex-shrink-0 pt-10">
+        {/* Right: counts + firebase indicator */}
+        <div className="text-right flex-shrink-0 pt-10 flex flex-col items-end gap-2">
           <p className="text-[11px] tracking-[0.25em] uppercase text-[#c8b89a]/60">
-            {displayed} Fabrics &nbsp;·&nbsp; {totalLooks} Looks
+            {displayed} Fabrics &nbsp;·&nbsp; {totalLooks ?? '—'} Looks
           </p>
+          {isAdmin && (
+            <div className="flex items-center gap-1.5">
+              <span className={`w-1.5 h-1.5 rounded-full ${fbConnected ? 'bg-green-400' : 'bg-yellow-400 animate-pulse'}`} />
+              <span className="text-[8px] uppercase tracking-widest text-white/25">
+                {fbConnected ? 'Firebase' : 'Connecting…'}
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </div>

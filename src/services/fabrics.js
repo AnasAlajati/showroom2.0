@@ -31,8 +31,8 @@ function uid() {
 export async function addGarmentImages(fabricId, gender, files) {
   const urls = []
   for (const file of Array.from(files)) {
-    const ext  = file.name.split('.').pop().toLowerCase()
-    const url  = await uploadFile(file, `garments/${fabricId}/${gender}/${uid()}.${ext}`)
+    const ext = file.name.split('.').pop().toLowerCase()
+    const url = await uploadFile(file, `garments/${fabricId}/${gender}/${uid()}.${ext}`)
     urls.push(url)
   }
   if (urls.length) {
@@ -43,8 +43,20 @@ export async function addGarmentImages(fabricId, gender, files) {
   return urls
 }
 
+function storagePathFromUrl(url) {
+  try {
+    const match = new URL(url).pathname.match(/\/o\/(.+)$/)
+    if (match) return decodeURIComponent(match[1])
+  } catch {}
+  return url
+}
+
 export async function deleteGarmentImage(fabricId, gender, url) {
-  try { await deleteObject(ref(storage, url)) } catch {}
+  try {
+    await deleteObject(ref(storage, storagePathFromUrl(url)))
+  } catch (e) {
+    console.warn('Storage delete failed (file may already be gone):', e.message)
+  }
   await updateDoc(doc(db, 'fabrics', fabricId), {
     [`garmentImages.${gender}`]: arrayRemove(url),
   })
@@ -53,7 +65,8 @@ export async function deleteGarmentImage(fabricId, gender, url) {
 export async function replaceTexture(fabricId, file) {
   const ext = file.name.split('.').pop().toLowerCase()
   const url = await uploadFile(file, `fabrics/${fabricId}/texture.${ext}`)
-  await updateDoc(doc(db, 'fabrics', fabricId), { image: url })
+  // merge:true so it works even if something about the doc is unexpected
+  await setDoc(doc(db, 'fabrics', fabricId), { image: url }, { merge: true })
   return url
 }
 
@@ -63,4 +76,20 @@ export async function deleteFabric(fabricId) {
 
 export async function createFabric(fabric) {
   await setDoc(doc(db, 'fabrics', fabric.id), fabric)
+}
+
+// merge:true = safe update whether or not the doc already has all fields
+export async function updateFabricField(fabricId, field, value) {
+  await setDoc(doc(db, 'fabrics', fabricId), { [field]: value }, { merge: true })
+}
+
+export async function updateFabric(fabricId, fields) {
+  await setDoc(doc(db, 'fabrics', fabricId), fields, { merge: true })
+}
+
+export async function reorderGarmentImages(fabricId, gender, orderedUrls) {
+  // updateDoc with dot-notation key replaces the array in-place
+  await updateDoc(doc(db, 'fabrics', fabricId), {
+    [`garmentImages.${gender}`]: orderedUrls,
+  })
 }

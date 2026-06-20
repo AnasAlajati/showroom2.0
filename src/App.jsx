@@ -11,6 +11,8 @@ import LandingPage from './components/LandingPage'
 import MergeTool from './components/MergeTool'
 import AddFabric from './components/AddFabric'
 import { useAdmin, AdminLoginModal, AdminPanel } from './components/AdminLogin'
+import AdminMigrate from './components/AdminMigrate'
+import AdminFirebaseTest from './components/AdminFirebaseTest'
 import './index.css'
 
 export default function App() {
@@ -26,6 +28,8 @@ export default function App() {
   const [showAdmin,   setShowAdmin]   = useState(false)
   const [showMerge,   setShowMerge]   = useState(false)
   const [showAdd,     setShowAdd]     = useState(false)
+  const [showMigrate, setShowMigrate] = useState(false)
+  const [showFbTest,  setShowFbTest]  = useState(false)
 
   useEffect(() => {
     fetchFabrics()
@@ -54,12 +58,16 @@ export default function App() {
     else setShowLogin(true)
   }
 
-  if (showMerge) return <MergeTool onClose={() => setShowMerge(false)} />
-  if (showAdd)   return <AddFabric onClose={() => { setShowAdd(false); fetchFabrics().then(setFabrics) }} />
-  if (showAdmin) return (
+  if (showMerge)   return <MergeTool onClose={() => setShowMerge(false)} />
+  if (showAdd)     return <AddFabric onClose={() => { setShowAdd(false); fetchFabrics().then(setFabrics) }} />
+  if (showMigrate) return <AdminMigrate onClose={() => { setShowMigrate(false); fetchFabrics().then(setFabrics) }} />
+  if (showFbTest)  return <AdminFirebaseTest onClose={() => setShowFbTest(false)} />
+  if (showAdmin)   return (
     <AdminPanel
       onAdd={() => { setShowAdmin(false); setShowAdd(true) }}
       onMerge={() => { setShowAdmin(false); setShowMerge(true) }}
+      onMigrate={() => { setShowAdmin(false); setShowMigrate(true) }}
+      onTest={() => { setShowAdmin(false); setShowFbTest(true) }}
       onLogout={() => { logout(); setShowAdmin(false) }}
       onClose={() => setShowAdmin(false)}
     />
@@ -101,6 +109,9 @@ export default function App() {
             onHome={() => setPage('landing')}
             displayed={displayed.length}
             activeGroup={activeGroup}
+            totalLooks={fabrics.reduce((s, f) => s + Object.values(f.garmentImages ?? {}).reduce((n, a) => n + a.length, 0), 0)}
+            isAdmin={isAdmin}
+            fbConnected={!loading && fabrics.length > 0}
           />
           <GroupTabs active={activeGroup} onChange={setActiveGroup} />
 
@@ -117,7 +128,7 @@ export default function App() {
                   <motion.div key={fabric.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.35, delay: i * 0.04 }}>
                     <FabricCard fabric={fabric} onClick={setSelected} isAdmin={isAdmin}
-                      onDelete={removeFabric} />
+                      onDelete={removeFabric} priority={i < 4} />
                   </motion.div>
                 ))}
               </motion.div>

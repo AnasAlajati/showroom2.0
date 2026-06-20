@@ -3,8 +3,9 @@ import { motion } from 'framer-motion'
 import { PANTONE_COLORS } from '../data/colors'
 import { GROUPS } from '../data/fabrics'
 import { deleteFabric } from '../services/fabrics'
+import LazyImage from './LazyImage'
 
-export default function FabricCard({ fabric, onClick, isAdmin, onDelete }) {
+export default function FabricCard({ fabric, onClick, isAdmin, onDelete, priority = false }) {
   const groupLabel = GROUPS.find(g => g.id === fabric.group)?.label ?? ''
   const colorName = fabric.pantones[0] ? PANTONE_COLORS[fabric.pantones[0]]?.name ?? '' : ''
   const [deleting, setDeleting] = useState(false)
@@ -30,12 +31,11 @@ export default function FabricCard({ fabric, onClick, isAdmin, onDelete }) {
     >
       {/* Full-bleed image */}
       <div className="relative w-full aspect-[3/4] overflow-hidden">
-        <img
+        <LazyImage
           src={fabric.image}
           alt={fabric.name}
-          loading="lazy"
-          decoding="async"
-          className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.06]"
+          priority={priority}
+          className="absolute inset-0 w-full h-full transition-transform duration-700 ease-out group-hover:scale-[1.06]"
         />
 
         {/* Permanent gradient for text at bottom */}

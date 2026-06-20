@@ -1,5 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { db } from '../firebase'
+import { collection, getDocs, query, limit } from 'firebase/firestore'
 
 const ADMIN_KEY = 'showroom_admin_v1'
 const check = pw => btoa(pw) === btoa('Butterfly5345X')
@@ -106,8 +108,30 @@ export function AdminLoginModal({ onLogin, onClose }) {
   )
 }
 
+function useFirebaseStatus() {
+  const [status, setStatus] = useState('checking') // 'checking' | 'connected' | 'error'
+  const [count,  setCount]  = useState(null)
+
+  useEffect(() => {
+    getDocs(query(collection(db, 'fabrics'), limit(1)))
+      .then(snap => { setCount('active'); setStatus('connected') })
+      .catch(() => setStatus('error'))
+  }, [])
+
+  return { status, count }
+}
+
 // Admin panel page (shown when isAdmin)
-export function AdminPanel({ onAdd, onMerge, onLogout, onClose }) {
+export function AdminPanel({ onAdd, onMerge, onMigrate, onTest, onLogout, onClose }) {
+  const { status, count } = useFirebaseStatus()
+
+  const statusColor = status === 'connected' ? '#4ade80'
+                    : status === 'error'     ? '#f87171'
+                    : '#facc15'
+  const statusLabel = status === 'connected' ? 'Connected'
+                    : status === 'error'     ? 'Cannot reach Firestore'
+                    : 'Checking…'
+
   return (
     <div className="fixed inset-0 z-[200] bg-[#0f0f0d] flex flex-col">
       <div className="border-b border-white/10 px-8 py-5 flex items-center justify-between">
@@ -115,7 +139,24 @@ export function AdminPanel({ onAdd, onMerge, onLogout, onClose }) {
           <p className="text-[9px] tracking-[0.3em] uppercase text-[#B5614A] mb-1">Admin Panel</p>
           <h1 className="font-serif text-2xl text-[#EDE0C8]">Showroom Tools</h1>
         </div>
-        <button onClick={onClose} className="text-white/30 hover:text-white text-xl px-3">✕</button>
+        <div className="flex items-center gap-4">
+          {/* Firebase status */}
+          <div className="flex items-center gap-2 border border-white/10 px-3 py-1.5">
+            <span className="relative flex h-2 w-2">
+              {status === 'checking' && (
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"
+                      style={{ background: statusColor }} />
+              )}
+              <span className="relative inline-flex rounded-full h-2 w-2"
+                    style={{ background: statusColor }} />
+            </span>
+            <span className="text-[9px] uppercase tracking-widest" style={{ color: statusColor }}>
+              Firebase
+            </span>
+            <span className="text-[9px] text-white/30 tracking-wide">{statusLabel}</span>
+          </div>
+          <button onClick={onClose} className="text-white/30 hover:text-white text-xl px-1">✕</button>
+        </div>
       </div>
 
       <div className="flex-1 flex flex-col items-center justify-center gap-4 px-8">
@@ -131,6 +172,18 @@ export function AdminPanel({ onAdd, onMerge, onLogout, onClose }) {
           title="Merge Duplicates"
           desc="Combine Winter Essentials entries with existing fabrics"
           onClick={onMerge}
+        />
+        <AdminTile
+          icon={<MigrateIcon />}
+          title="Migrate to Firebase"
+          desc="Upload all local fabrics + images to Firestore & Storage"
+          onClick={onMigrate}
+        />
+        <AdminTile
+          icon={<TestIcon />}
+          title="Firebase Test"
+          desc="Verify Firestore read/write and Storage upload are working"
+          onClick={onTest}
         />
         <button
           onClick={onLogout}
@@ -178,6 +231,20 @@ function MergeIcon() {
   return (
     <svg fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" className="w-6 h-6">
       <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+    </svg>
+  )
+}
+function TestIcon() {
+  return (
+    <svg fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" className="w-6 h-6">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23-.693L5 14.5m14.8.8l1.402 1.402c1 1 .03 2.675-1.31 2.351l-14.5-3.62c-1.342-.336-1.464-2.118-.18-2.634L5 14.5" />
+    </svg>
+  )
+}
+function MigrateIcon() {
+  return (
+    <svg fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" className="w-6 h-6">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.338-2.32 5.75 5.75 0 011.076 11.095" />
     </svg>
   )
 }
