@@ -25,7 +25,12 @@ dist-ssr
 
 # Raw import sources — not needed in repo
 FABRIC-20260521T082826Z-3-001/
-scripts/
+
+# Firebase admin credentials — never commit this
+scripts/serviceAccount.json
+
+# Migration script (dev only)
+# scripts/  ← keep scripts folder, just exclude the key
 
 # Temp dev-server logs
 dev-out.txt

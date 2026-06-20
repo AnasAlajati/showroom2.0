@@ -1,12 +1,12 @@
 import { motion } from 'framer-motion'
 import { PANTONE_COLORS, COLOR_FAMILIES } from '../data/colors'
-import { FABRICS, GROUPS } from '../data/fabrics'
+import { GROUPS } from '../data/fabrics'
 import { AdminIcon } from './AdminLogin'
 
 const allColors = COLOR_FAMILIES.flatMap(f => f.codes.map(c => ({ code: c, ...PANTONE_COLORS[c] })))
 
-export default function LandingPage({ onEnter, onFamilies, onPalette, isAdmin, onAdminClick }) {
-  const totalPieces = FABRICS.reduce((sum, f) => {
+export default function LandingPage({ onEnter, onFamilies, onPalette, isAdmin, onAdminClick, fabrics = [] }) {
+  const totalPieces = fabrics.reduce((sum, f) => {
     const g = f.garments ? Object.keys(f.garments).length : 0
     return sum + g
   }, 0)
@@ -35,7 +35,7 @@ export default function LandingPage({ onEnter, onFamilies, onPalette, isAdmin, o
           Fabric Showroom
         </p>
         <div className="flex items-center gap-4 text-[11px] tracking-[0.25em] uppercase font-light text-[#c8b89a]">
-          <span>{FABRICS.length} Fabrics</span>
+          <span>{fabrics.length} Fabrics</span>
           <span className="w-px h-3 bg-[#c8b89a]/40" />
           <span>{totalPieces} Pieces</span>
           {isAdmin ? (

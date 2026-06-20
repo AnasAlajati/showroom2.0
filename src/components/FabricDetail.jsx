@@ -1,24 +1,16 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { PANTONE_COLORS } from '../data/colors'
 import { GROUPS, FABRICS } from '../data/fabrics'
 import { FAMILIES } from '../data/families'
+import { addGarmentImages, deleteGarmentImage, replaceTexture, deleteFabric } from '../services/fabrics'
 
 const TAB_LABEL = { men: 'Men', women: 'Women', kids: 'Children' }
 
-function readAsBase64(file) {
-  return new Promise((resolve, reject) => {
-    const r = new FileReader()
-    r.onload  = () => resolve({ data: r.result.split(',')[1], ext: file.name.split('.').pop() })
-    r.onerror = reject
-    r.readAsDataURL(file)
-  })
-}
-
 function GarmentUploadZone({ fabric, gender, onUploaded }) {
-  const [over,     setOver]     = useState(false)
+  const [over,      setOver]      = useState(false)
   const [uploading, setUploading] = useState(false)
-  const [error,    setError]    = useState(null)
+  const [error,     setError]     = useState(null)
   const inputRef = useRef()
 
   async function handle(files) {
@@ -26,21 +18,8 @@ function GarmentUploadZone({ fabric, gender, onUploaded }) {
     if (!imgs.length) return
     setUploading(true); setError(null)
     try {
-      const encoded = await Promise.all(imgs.map(readAsBase64))
-      const res = await fetch('/api/add-garment-images', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fabricId: fabric.id,
-          group:    fabric.group,
-          code:     fabric.code,
-          gender,
-          images:   encoded,
-        }),
-      })
-      const json = await res.json()
-      if (!res.ok) throw new Error(json.error || 'Upload failed')
-      onUploaded(json.paths)
+      const urls = await addGarmentImages(fabric.id, gender, imgs)
+      onUploaded(urls)
     } catch (e) {
       setError(e.message)
     } finally {
@@ -141,27 +120,19 @@ export default function FabricDetail({ fabric, onClose, isAdmin, onDeleted }) {
     setActiveImg(0)
   }
 
-  async function deleteImage(path) {
-    setDeletingImg(path)
+  async function deleteImage(url) {
+    setDeletingImg(url)
     try {
-      await fetch('/api/delete-image', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imagePath: path }),
-      })
-      setDeletedPaths(prev => new Set([...prev, path]))
+      await deleteGarmentImage(fabric.id, activeTab, url)
+      setDeletedPaths(prev => new Set([...prev, url]))
       setActiveImg(i => Math.min(i, Math.max(0, garmentImgs.length - 2)))
     } finally { setDeletingImg(null) }
   }
 
-  async function deleteFabric() {
+  async function handleDeleteFabric() {
     setDeletingFab(true)
     try {
-      await fetch('/api/delete-fabric', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fabricId: fabric.id }),
-      })
+      await deleteFabric(fabric.id)
       onDeleted?.()
       onClose(null)
     } finally { setDeletingFab(false); setConfirmDel(false) }
@@ -172,15 +143,8 @@ export default function FabricDetail({ fabric, onClose, isAdmin, onDeleted }) {
     if (!imgs.length) return
     setAddingImgs(true)
     try {
-      const encoded = await Promise.all(imgs.map(readAsBase64))
-      const res = await fetch('/api/add-garment-images', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fabricId: fabric.id, group: fabric.group, code: fabric.code, gender: activeTab, images: encoded }),
-      })
-      const json = await res.json()
-      if (!res.ok) throw new Error(json.error)
-      handleUploaded(activeTab, json.paths)
+      const urls = await addGarmentImages(fabric.id, activeTab, imgs)
+      handleUploaded(activeTab, urls)
     } finally { setAddingImgs(false) }
   }
 
@@ -189,15 +153,8 @@ export default function FabricDetail({ fabric, onClose, isAdmin, onDeleted }) {
     if (!file || !file.type.startsWith('image/')) return
     setReplacingImg(true)
     try {
-      const encoded = await readAsBase64(file)
-      const res = await fetch('/api/update-fabric-image', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fabricId: fabric.id, group: fabric.group, code: fabric.code, image: encoded }),
-      })
-      const json = await res.json()
-      if (!res.ok) throw new Error(json.error)
-      setLiveImage(URL.createObjectURL(file))
+      const url = await replaceTexture(fabric.id, file)
+      setLiveImage(url)
     } finally { setReplacingImg(false) }
   }
 
@@ -310,7 +267,7 @@ export default function FabricDetail({ fabric, onClose, isAdmin, onDeleted }) {
               {confirmDel ? (
                 <div className="flex items-center gap-2">
                   <span className="text-[9px] text-white/40 uppercase tracking-widest">Delete this fabric?</span>
-                  <button onClick={deleteFabric} disabled={deletingFab}
+                  <button onClick={handleDeleteFabric} disabled={deletingFab}
                           className="text-[9px] uppercase tracking-widest text-red-400 hover:text-red-300 border border-red-500/30 hover:border-red-400 px-2 py-1 transition-colors">
                     {deletingFab ? '…' : 'Yes, delete'}
                   </button>

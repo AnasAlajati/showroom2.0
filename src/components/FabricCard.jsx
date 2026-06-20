@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { PANTONE_COLORS } from '../data/colors'
 import { GROUPS } from '../data/fabrics'
+import { deleteFabric } from '../services/fabrics'
 
 export default function FabricCard({ fabric, onClick, isAdmin, onDelete }) {
   const groupLabel = GROUPS.find(g => g.id === fabric.group)?.label ?? ''
@@ -14,11 +15,7 @@ export default function FabricCard({ fabric, onClick, isAdmin, onDelete }) {
     if (!confirm) { setConfirm(true); return }
     setDeleting(true)
     try {
-      await fetch('/api/delete-fabric', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fabricId: fabric.id }),
-      })
+      await deleteFabric(fabric.id)
       onDelete?.(fabric.id)
     } finally { setDeleting(false); setConfirm(false) }
   }

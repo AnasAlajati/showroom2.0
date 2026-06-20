@@ -1,27 +1,28 @@
 import { useState, useCallback } from 'react'
 import { GROUPS } from '../data/fabrics'
 import { PANTONE_COLORS } from '../data/colors'
+import { createFabric } from '../services/fabrics'
+import { storage } from '../firebase'
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 
 const GENDERS = ['men', 'women', 'kids']
 const GENDER_LABEL = { men: 'Men', women: 'Women', kids: 'Children' }
 
-function readAsBase64(file) {
-  return new Promise((resolve, reject) => {
-    const r = new FileReader()
-    r.onload  = () => resolve({ data: r.result.split(',')[1], ext: file.name.split('.').pop() })
-    r.onerror = reject
-    r.readAsDataURL(file)
-  })
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2) }
+
+async function uploadFile(file, path) {
+  const r    = ref(storage, path)
+  const snap = await uploadBytes(r, file)
+  return getDownloadURL(snap.ref)
 }
 
 function DropZone({ label, multiple = false, files, onFiles, accent = false }) {
   const [over, setOver] = useState(false)
 
-  const handle = useCallback(async raw => {
-    const list = Array.from(raw).filter(f => f.type.startsWith('image/'))
+  const handle = useCallback(raw => {
+    const list     = Array.from(raw).filter(f => f.type.startsWith('image/'))
     if (!list.length) return
-    const reads = await Promise.all(list.map(readAsBase64))
-    const previews = list.map((f, i) => ({ ...reads[i], preview: URL.createObjectURL(f), name: f.name }))
+    const previews = list.map(f => ({ file: f, preview: URL.createObjectURL(f), name: f.name }))
     onFiles(multiple ? prev => [...prev, ...previews] : [previews[0]])
   }, [multiple, onFiles])
 
@@ -92,29 +93,45 @@ export default function AddFabric({ onClose }) {
   }
 
   async function submit() {
-    if (!name.trim())      return setError('Fabric name is required')
-    if (!texture.length)   return setError('Texture image is required')
+    if (!name.trim())    return setError('Fabric name is required')
+    if (!texture.length) return setError('Texture image is required')
     setError('')
     setStatus('loading')
 
-    const body = {
-      name: name.trim(), group, structure, gsm,
-      fleeseCombo: fleece, fleeseNote,
-      pantones,
-      texture: texture[0],
-      garments: Object.fromEntries(
-        GENDERS.filter(g => garments[g].length).map(g => [g, garments[g]])
-      ),
-    }
-
     try {
-      const res  = await fetch('/api/upload-fabric', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+      const slug = name.trim().replace(/[—–]/g, '-').replace(/[^a-zA-Z0-9\s-]/g, '')
+        .trim().replace(/\s+/g, '-').toUpperCase()
+      const id = slug.toLowerCase()
+
+      // Upload texture
+      const texFile = texture[0].file
+      const texExt  = texFile.name.split('.').pop().toLowerCase()
+      const texUrl  = await uploadFile(texFile, `fabrics/${id}/texture.${texExt}`)
+
+      // Upload garment images
+      const garmentImages = {}
+      const customers     = []
+      for (const g of GENDERS) {
+        if (!garments[g].length) continue
+        customers.push(g)
+        garmentImages[g] = []
+        for (const item of garments[g]) {
+          const ext = item.file.name.split('.').pop().toLowerCase()
+          const url = await uploadFile(item.file, `garments/${id}/${g}/${uid()}.${ext}`)
+          garmentImages[g].push(url)
+        }
+      }
+
+      await createFabric({
+        id, code: slug, name: name.trim(), group,
+        image: texUrl, structure, gsm,
+        customers,
+        garments: Object.fromEntries(customers.map(g => [g, ''])),
+        pantones, fleeseCombo: fleece,
+        ...(fleece && fleeceNote ? { fleeseNote } : {}),
+        ...(Object.keys(garmentImages).length ? { garmentImages } : {}),
       })
-      const json = await res.json()
-      if (!res.ok) throw new Error(json.error || 'Upload failed')
+
       setStatus('ok')
     } catch (e) {
       setStatus('error')

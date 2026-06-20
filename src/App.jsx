@@ -1,6 +1,7 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { FABRICS } from './data/fabrics'
+import { GROUPS } from './data/fabrics'
+import { fetchFabrics } from './services/fabrics'
 import LookbookHeader from './components/LookbookHeader'
 import GroupTabs from './components/GroupTabs'
 import FabricCard from './components/FabricCard'
@@ -15,6 +16,8 @@ import './index.css'
 export default function App() {
   const { isAdmin, login, logout } = useAdmin()
 
+  const [fabrics,     setFabrics]     = useState([])
+  const [loading,     setLoading]     = useState(true)
   const [page,        setPage]        = useState('landing')
   const [activeGroup, setActiveGroup] = useState('all')
   const [selected,    setSelected]    = useState(null)
@@ -23,14 +26,23 @@ export default function App() {
   const [showAdmin,   setShowAdmin]   = useState(false)
   const [showMerge,   setShowMerge]   = useState(false)
   const [showAdd,     setShowAdd]     = useState(false)
-  const [deletedIds,  setDeletedIds]  = useState(new Set())
+
+  useEffect(() => {
+    fetchFabrics()
+      .then(setFabrics)
+      .catch(e => console.error('Firestore load failed:', e))
+      .finally(() => setLoading(false))
+  }, [])
 
   const displayed = useMemo(() => {
-    const base = activeGroup === 'all' ? FABRICS : FABRICS.filter(f => f.group === activeGroup)
-    const visible = base.filter(f => !deletedIds.has(f.id))
-    const imgCount = f => Object.values(f.garmentImages ?? {}).reduce((s, a) => s + a.length, 0)
-    return [...visible].sort((a, b) => imgCount(b) - imgCount(a))
-  }, [activeGroup, deletedIds])
+    const base = activeGroup === 'all' ? fabrics : fabrics.filter(f => f.group === activeGroup)
+    const cnt  = f => Object.values(f.garmentImages ?? {}).reduce((s, a) => s + a.length, 0)
+    return [...base].sort((a, b) => cnt(b) - cnt(a))
+  }, [activeGroup, fabrics])
+
+  function removeFabric(id) {
+    setFabrics(prev => prev.filter(f => f.id !== id))
+  }
 
   function goToLookbook(group) {
     if (group && group !== 'all') setActiveGroup(group)
@@ -42,9 +54,8 @@ export default function App() {
     else setShowLogin(true)
   }
 
-  // Admin tool full-screen overrides
   if (showMerge) return <MergeTool onClose={() => setShowMerge(false)} />
-  if (showAdd)   return <AddFabric onClose={() => setShowAdd(false)} />
+  if (showAdd)   return <AddFabric onClose={() => { setShowAdd(false); fetchFabrics().then(setFabrics) }} />
   if (showAdmin) return (
     <AdminPanel
       onAdd={() => { setShowAdmin(false); setShowAdd(true) }}
@@ -56,7 +67,6 @@ export default function App() {
 
   return (
     <>
-      {/* Admin login modal */}
       <AnimatePresence>
         {showLogin && (
           <AdminLoginModal
@@ -74,6 +84,7 @@ export default function App() {
             onPalette={() => setShowColors(true)}
             isAdmin={isAdmin}
             onAdminClick={handleAdminClick}
+            fabrics={fabrics}
           />
           <AnimatePresence>
             {showColors && (
@@ -94,17 +105,23 @@ export default function App() {
           <GroupTabs active={activeGroup} onChange={setActiveGroup} />
 
           <main className="px-6 sm:px-10 pt-8 pb-24">
-            <motion.div key={activeGroup} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-              transition={{ duration: 0.3 }}
-              className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
-              {displayed.map((fabric, i) => (
-                <motion.div key={fabric.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.35, delay: i * 0.04 }}>
-                  <FabricCard fabric={fabric} onClick={setSelected} isAdmin={isAdmin}
-                    onDelete={id => setDeletedIds(s => new Set([...s, id]))} />
-                </motion.div>
-              ))}
-            </motion.div>
+            {loading ? (
+              <div className="flex items-center justify-center py-32">
+                <div className="w-8 h-8 border-2 border-white/20 border-t-[#EDE0C8] rounded-full animate-spin" />
+              </div>
+            ) : (
+              <motion.div key={activeGroup} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                transition={{ duration: 0.3 }}
+                className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
+                {displayed.map((fabric, i) => (
+                  <motion.div key={fabric.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.35, delay: i * 0.04 }}>
+                    <FabricCard fabric={fabric} onClick={setSelected} isAdmin={isAdmin}
+                      onDelete={removeFabric} />
+                  </motion.div>
+                ))}
+              </motion.div>
+            )}
           </main>
 
           <AnimatePresence>
@@ -116,7 +133,7 @@ export default function App() {
                   onClose={(next) => setSelected(next ?? null)}
                   isAdmin={isAdmin}
                   onDeleted={() => {
-                    setDeletedIds(s => new Set([...s, selected.id]))
+                    removeFabric(selected.id)
                     setSelected(null)
                   }}
                 />

@@ -342,7 +342,7 @@ export const FABRICS = [
     fleeseCombo: true,
     fleeseNote: 'Crinkle outer shell + 3-thread fleece interior lining for warmth',
     garmentImages: {
-      women: ['/garments/05_SLUB_OPEN/LG-CRINKLE-SEER/Women/04.png'],
+      women: ['/garments/05_SLUB_OPEN/LG-CRINKLE-SEER/Women/04.png', '/garments/05_SLUB_OPEN/LG-CRINKLE-SEER/Men/04.jpeg', '/garments/05_SLUB_OPEN/LG-CRINKLE-SEER/Men/05.png', '/garments/05_SLUB_OPEN/LG-CRINKLE-SEER/Men/06.png'],
     },
   },
 
