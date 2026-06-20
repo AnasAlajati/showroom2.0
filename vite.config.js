@@ -175,8 +175,8 @@ function fabricUploadPlugin() {
                 // garmentImages exists but not this gender — insert gender key
                 newBlock = block.replace(/(garmentImages\s*:\s*\{)/, `$1\n      ${gender}: [${quoted}],`)
               } else {
-                // No garmentImages at all — append before closing brace
-                newBlock = block.slice(0, -1) + `,\n    garmentImages: {\n      ${gender}: [${quoted}],\n    },\n  }`
+                // No garmentImages at all — strip trailing whitespace+} then append
+                newBlock = block.replace(/\s*\}$/, '') + `\n    garmentImages: {\n      ${gender}: [${quoted}],\n    },\n  }`
               }
 
               src = src.slice(0, bStart) + newBlock + src.slice(bEnd + 1)

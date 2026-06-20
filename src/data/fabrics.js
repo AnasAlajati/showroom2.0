@@ -341,6 +341,9 @@ export const FABRICS = [
     pantones: ['19-4118', '18-1435', '13-2803'],
     fleeseCombo: true,
     fleeseNote: 'Crinkle outer shell + 3-thread fleece interior lining for warmth',
+    garmentImages: {
+      women: ['/garments/05_SLUB_OPEN/LG-CRINKLE-SEER/Women/04.png'],
+    },
   },
 
   // ── 06 STRIPE JACQUARD ──────────────────────────────────
@@ -481,9 +484,9 @@ export const FABRICS = [
     pantones: ['19-4118', '16-4010', '13-0908'],
     fleeseCombo: false,
     garmentImages: {
-      men:   ['/garments/09_WINTER_ESSENTIALS/F02/Men/01.jpeg', '/garments/09_WINTER_ESSENTIALS/F02/Men/02.jpeg', '/garments/05_SLUB_OPEN/LG-CRINKLE-SEER/Men/02.png'],
-      women: ['/garments/09_WINTER_ESSENTIALS/F02/Women/01.jpeg', '/garments/09_WINTER_ESSENTIALS/F02/Women/02.jpeg', '/garments/05_SLUB_OPEN/LG-CRINKLE-SEER/Women/02.png'],
-      kids:  ['/garments/09_WINTER_ESSENTIALS/F02/Children/01.jpeg', '/garments/09_WINTER_ESSENTIALS/F02/Children/02.jpeg', '/garments/09_WINTER_ESSENTIALS/F02/Children/03.jpeg', '/garments/05_SLUB_OPEN/LG-CRINKLE-SEER/Children/02.png'],
+      men:   ['/garments/09_WINTER_ESSENTIALS/F02/Men/01.jpeg', '/garments/09_WINTER_ESSENTIALS/F02/Men/02.jpeg', '/garments/05_SLUB_OPEN/LG-CRINKLE-SEER/Men/02.png', '/garments/05_SLUB_OPEN/LG-CRINKLE-SEER/Men/03.png'],
+      women: ['/garments/09_WINTER_ESSENTIALS/F02/Women/01.jpeg', '/garments/09_WINTER_ESSENTIALS/F02/Women/02.jpeg', '/garments/05_SLUB_OPEN/LG-CRINKLE-SEER/Women/02.png', '/garments/05_SLUB_OPEN/LG-CRINKLE-SEER/Women/03.png'],
+      kids:  ['/garments/09_WINTER_ESSENTIALS/F02/Children/01.jpeg', '/garments/09_WINTER_ESSENTIALS/F02/Children/02.jpeg', '/garments/09_WINTER_ESSENTIALS/F02/Children/03.jpeg', '/garments/05_SLUB_OPEN/LG-CRINKLE-SEER/Children/02.png', '/garments/05_SLUB_OPEN/LG-CRINKLE-SEER/Children/03.png', '/garments/05_SLUB_OPEN/LG-CRINKLE-SEER/Children/04.webp'],
     },
   },
   {
